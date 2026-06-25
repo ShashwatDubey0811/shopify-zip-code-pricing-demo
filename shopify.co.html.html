@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<!--
+  standalone-demo.html
+  ---------------------
+  A fully self-contained version of the ZIP-price-checker demo.
+
+  Unlike demo-product-page.html (which calls a real backend over HTTP at
+  localhost:3000), this file simulates the backend call client-side with
+  a deliberate artificial delay, so it can be opened directly — as a
+  local file, or hosted as a single static file anywhere — with ZERO
+  setup. No Node process, no deployment, no localhost dependency.
+
+  This is for fast sharing / demoing the UX only. The REAL architecture
+  being evaluated (storefront -> backend API -> pricing rules) is fully
+  implemented and tested in /backend and /shopify-snippet — this file
+  is a convenience wrapper for instant viewing, not a replacement for
+  that separation. See README.md and ARCHITECTURE.md for the real
+  client/server split.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo Product Page — Shopify ZIP Pricing</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: #1a1a1a;
+    background: #fafafa;
+  }
+  .product-page {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    background: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .product-image {
+    width: 280px;
+    height: 280px;
+    background: linear-gradient(135deg, #eee, #ddd);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .product-info { flex: 1; min-width: 280px; }
+  .product-title { font-size: 26px; margin: 0 0 8px; }
+  .product-price { font-size: 22px; font-weight: 700; margin: 0 0 16px; }
+  .product-description { color: #555; line-height: 1.5; margin-bottom: 20px; }
+  .badge {
+    display: inline-block;
+    background: #f0f0f0;
+    color: #555;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+  .zip-price-checker {
+    margin: 12px 0 20px;
+    padding: 14px 16px;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    max-width: 420px;
+  }
+  .zip-price-checker__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  .zip-price-checker__row { display: flex; gap: 8px; }
+  .zip-price-checker__input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #c9c9c9;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .zip-price-checker__button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .zip-price-checker__button:hover { background: #333; }
+  .zip-price-checker__button:disabled { background: #999; cursor: not-allowed; }
+  .zip-price-checker__result { margin-top: 10px; font-size: 15px; min-height: 20px; }
+  .zip-price-checker__result.is-price { font-weight: 700; color: #1a7a1a; }
+  .zip-price-checker__result.is-error { color: #c0392b; }
+  .test-zips {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .test-zip-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    color: #555;
+  }
+  .test-zip-btn:hover { background: #f5f5f5; }
+  .note {
+    margin-top: 24px;
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+  <span class="badge">DEMO — simulated Shopify product page</span>
+
+  <div class="product-page">
+    <div class="product-image">Product photo</div>
+
+    <div class="product-info">
+      <h1 class="product-title">Demo Product</h1>
+      <p class="product-price">Base price: $1,599.00</p>
+      <p class="product-description">
+        Sample product used to demonstrate ZIP-code based pricing.
+        Enter a ZIP code below to see the price update.
+      </p>
+
+      <div class="zip-price-checker" data-product-id="default-product">
+        <label for="zip-price-input" class="zip-price-checker__label">
+          Check price for your delivery ZIP code
+        </label>
+
+        <div class="zip-price-checker__row">
+          <input
+            type="text"
+            id="zip-price-input"
+            class="zip-price-checker__input"
+            placeholder="Enter ZIP code"
+            maxlength="5"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            aria-label="Destination ZIP code"
+          />
+          <button type="button" id="zip-price-button" class="zip-price-checker__button">
+            Check Price
+          </button>
+        </div>
+
+        <div id="zip-price-result" class="zip-price-checker__result" aria-live="polite"></div>
+
+        <div class="test-zips">
+          <button class="test-zip-btn" data-zip="75028">Try 75028</button>
+          <button class="test-zip-btn" data-zip="10001">Try 10001</button>
+          <button class="test-zip-btn" data-zip="90210">Try 90210</button>
+          <button class="test-zip-btn" data-zip="30301">Try 30301 (unknown)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    This page simulates the backend call locally for instant demoing.<br/>
+    The real, separately-deployed backend (Express API) lives in <code>/backend</code> —
+    see the GitHub repo's README for the full architecture.
+  </p>
+
+<script>
+  (function () {
+    // ---- Simulated backend ----
+    // Mirrors backend/pricingRules.js exactly. In the real deployed
+    // version this logic lives server-side; here it's inlined so this
+    // single file works with no server at all.
+    var ZIP_PRICE_TABLE = {
+      "75028": 1499,
+      "10001": 1699,
+      "90210": 1799
+    };
+    var BASE_PRICE = 1599;
+
+    function simulateCheckPrice(zip) {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          if (!/^\d{5}$/.test(zip)) {
+            reject(new Error("A valid 5-digit ZIP code is required."));
+            return;
+          }
+          var matched = ZIP_PRICE_TABLE.hasOwnProperty(zip);
+          resolve({
+            price: matched ? ZIP_PRICE_TABLE[zip] : BASE_PRICE,
+            currency: "USD",
+            zip: zip,
+            matched: matched
+          });
+        }, 450); // artificial network delay, so it feels like a real call
+      });
+    }
+
+    // ---- UI wiring (identical to the real snippet's client JS) ----
+    var container = document.querySelector(".zip-price-checker");
+    var input = document.getElementById("zip-price-input");
+    var button = document.getElementById("zip-price-button");
+    var resultEl = document.getElementById("zip-price-result");
+
+    function formatCurrency(amount) {
+      try {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency", currency: "USD", maximumFractionDigits: 0
+        }).format(amount);
+      } catch (e) { return "$" + amount; }
+    }
+
+    function setLoading(isLoading) {
+      button.disabled = isLoading;
+      button.textContent = isLoading ? "Checking..." : "Check Price";
+    }
+
+    function showResult(message, type) {
+      resultEl.textContent = message;
+      resultEl.className = "zip-price-checker__result" + (type ? " is-" + type : "");
+    }
+
+    function checkPrice(zipOverride) {
+      var zip = (zipOverride || input.value || "").trim();
+      input.value = zip;
+
+      if (!/^\d{5}$/.test(zip)) {
+        showResult("Please enter a valid 5-digit ZIP code.", "error");
+        return;
+      }
+
+      setLoading(true);
+      showResult("Checking price for " + zip + "...", "");
+
+      simulateCheckPrice(zip)
+        .then(function (data) {
+          var priceText = formatCurrency(data.price);
+          if (data.matched) {
+            showResult("Price for " + zip + ": " + priceText, "price");
+          } else {
+            showResult(
+              "No special rate for " + zip + " yet — standard price: " + priceText,
+              "price"
+            );
+          }
+        })
+        .catch(function (err) {
+          showResult(err.message, "error");
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    button.addEventListener("click", function () { checkPrice(); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); checkPrice(); }
+    });
+    document.querySelectorAll(".test-zip-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { checkPrice(btn.dataset.zip); });
+    });
+  })();
+</script>
+
+</body>
+</html>
