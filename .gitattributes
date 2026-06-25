@@ -1,0 +1,20 @@
+# Handle line endings automatically for text files
+* text=auto
+
+# Explicitly mark files that should always use LF (Linux/Mac) line endings
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.liquid text eol=lf
+*.md text eol=lf
+
+# Explicitly mark binary files (so git never tries to fix line endings in them)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# GitHub specific: Ensure shopify liquid files are highlighted properly if needed
+*.liquid linguist-language=Liquid
